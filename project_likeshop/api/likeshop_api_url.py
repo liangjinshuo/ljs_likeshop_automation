@@ -1,6 +1,6 @@
 import requests
 
-from project_likeshop.config.application_config import LOGIN_URL, GOODS_URL, number, password, BUYS_URL
+from project_likeshop.config.application_config import LOGIN_URL, GOODS_URL, number, password, BUYS_URL, pcPrepay
 
 
 #likeshop平台登录
@@ -33,8 +33,8 @@ def query_api(token,page_size=20, name=""):
     }
 
     headers = {
-        "Authorization": f"Bearer {token}"  # 常见格式1：Bearer Token
-        # 如果你们接口是直接传 token，就写："token": token
+        "Cookie": f"token={token}",
+        "Token": token
     }
     # 3. 发送 GET 请求（params 自动拼接参数到 URL）
     try:
@@ -49,8 +49,9 @@ def query_api(token,page_size=20, name=""):
     except Exception as e:
         return {"code": -1, "msg": f"搜索异常：{str(e)}"}
 
-#likeshop平台搜索后下单（此为进入待支付场景）
-def buy_api(token):
+#likeshop平台搜索后下单
+#点击立即购买
+def buy_api_01(token):
     data = {
     "action": "info",
     "goods": [
@@ -62,7 +63,8 @@ def buy_api(token):
     "delivery_type": 1
 }
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Cookie": f"token={token}",
+        "Token": token
     }
     try:
         res = requests.post(
@@ -71,7 +73,60 @@ def buy_api(token):
             headers=headers,
             timeout=5
         )
-        print(f"📌 实际请求 URL：{res.url}")  # 调试：打印最终拼接的 URL
+        print(f"📌 实际请求 URL：{res.url}")
         return res.json()
     except Exception as e:
         return {"code": -1, "msg": f"搜索异常：{str(e)}"}
+#提交订单
+def buy_api_02(token):
+    data1 = {
+        "action": "submit",
+        "delivery_type": 1,
+        "goods": [{"item_id": 1, "num": 1}],
+        "use_integral": 0,
+        "address_id": "",
+        "remark": ""
+    }
+    headers = {
+        "Cookie": f"token={token}",
+        "Token": token
+    }
+    try:
+        res = requests.post(
+            url=BUYS_URL,
+            json=data1,
+            headers=headers,
+            timeout=5
+        )
+        print(f"📌 实际请求 URL：{res.url}")
+        res_json = res.json()
+
+        #提取订单id，供后面其他接口可以方便传参
+        order_id = res_json.get("data", {}).get("order_id")
+        res_json["order_id"] = order_id
+        return res_json
+    except Exception as e:
+        return {"code": -1, "msg": f"提交订单异常：{str(e)}", "order_id": None}
+
+#使用账户余额支付
+def buy_api_03(token, order_id):
+    data = {
+        "order_id": order_id,
+        "pay_way": 3,
+        "order_source": 5
+    }
+    headers = {
+        "Cookie": f"token={token}",
+        "Token": token
+    }
+    try:
+        res = requests.post(
+            url=pcPrepay,
+            json=data,
+            headers=headers,
+            timeout=5
+        )
+        print(f"📌 实际请求 URL：{res.url}")
+        return res.json()
+    except Exception as e:
+        return {"code": 1, "msg": f"支付异常：{str(e)}"}

@@ -2,7 +2,7 @@ import pytest
 import requests
 from project_likeshop.config.application_config import LOGIN_URL, number, password
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def get_login_token():
 
     req_data = {"account": number, "password": password, "client": 5}

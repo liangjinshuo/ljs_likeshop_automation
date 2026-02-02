@@ -1,7 +1,7 @@
 import time
 
 from conftest import get_login_token
-from project_likeshop.api.likeshop_api_url import login_api, query_api, buy_api
+from project_likeshop.api.likeshop_api_url import login_api, query_api, buy_api_01, buy_api_02, buy_api_03
 
 
 class TestLikeShop:
@@ -30,7 +30,14 @@ class TestLikeShop:
 
     time.sleep(3)
 
-    #下单场景（待支付）
+    #下单支付场景(接口都一样，只是传递的参数不同)
     def test_likeshop_buy(self, get_login_token):
-        res = buy_api(get_login_token)
-        assert res["code"] == 1,f"接口调用失败：{res['msg']}"
+        res1 = buy_api_01(get_login_token)
+        assert res1["code"] == 1,f"接口调用失败：{res1['msg']}"
+
+        res2 = buy_api_02(get_login_token)
+        assert res2["code"] == 1,f"接口调用失败：{res2['msg']}"
+
+        res3 = buy_api_03(get_login_token,order_id=res2["order_id"])
+        assert res3["code"] == 10001,f"接口调用失败：{res3['msg']}"
+        assert res3["msg"] == "支付成功",f"支付失败：{res3['msg']}"
