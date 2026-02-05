@@ -1,11 +1,19 @@
 import time
+import pytest
 
 from conftest import get_login_token
 from project_likeshop.api.likeshop_api_url import *
 
+ORDER_TYPE_ALL = [
+    ("all","查看全部订单"),
+    ("pay","查看待支付订单"),
+    ("delivery","查看待收货订单"),
+    ("finish","查看已完成订单"),
+    ("close","查看已关闭订单"),
+]
 
 class TestLikeShop:
-    #登录场景case
+    #登录场景
     def test_likeshop_login(self):
         res = login_api()
         assert res["code"] == 1 ,f"HTTP状态码错误，实际：{res['code']}"
@@ -44,13 +52,14 @@ class TestLikeShop:
 
     time.sleep(3)
 
-    #查看全部订单
-    def test_likeshop_order_all(self, get_login_token):
-        res = get_order_list_api(get_login_token, order_type="all", page_size=20, page_no=1)
-        assert res["code"] == 1, f"全部订单接口失败：{res['msg']}"
+    #查询各订单状态列表
+    @pytest.mark.parametrize("order_type, order_desc", ORDER_TYPE_ALL)
+    def test_likeshop_order_type_all(self, order_type, order_desc, get_login_token):
+        res = get_order_list_api(get_login_token, order_type=order_type,page_size=10,page_no=1)
+        assert res["code"] == 1, f"接口调用失败{res['msg']}"
         data = res.get("data", {})
-        all_list = data.get("list", [])  # 修复：默认值改为列表（原是字典）
-        assert len(all_list) >= 0, "全部订单列表为空"  # 允许空，避免无订单时断言失败
-        for idx, order in enumerate(all_list):
-            assert "order_goods" in order, f"第{idx + 1}条订单缺失order_goods字段"
-        time.sleep(3)
+        goods_list = data.get("list", [])
+        assert len(goods_list) > 0, f"{order_desc}列表为空"
+
+        for idx, order in enumerate(goods_list):
+            assert "order_goods" in order, f"第{idx+1}条order_goods为空"
